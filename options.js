@@ -1,6 +1,19 @@
 const input = document.getElementById("input");
 const list = document.getElementById("list");
 
+function normalizeDomain(inputValue) {
+  if (!inputValue) return "";
+
+  const trimmed = String(inputValue).trim().toLowerCase();
+  if (!trimmed) return "";
+
+  const withoutScheme = trimmed.replace(/^[a-z]+:\/\//i, "");
+  const withoutPath = withoutScheme.split("/")[0];
+  const withoutPort = withoutPath.split(":")[0];
+
+  return withoutPort.replace(/^\*\./, "").replace(/^\./, "");
+}
+
 async function load() {
   let { domains = [] } = await browser.storage.local.get("domains");
   render(domains);
@@ -22,10 +35,15 @@ function render(domains) {
 }
 
 async function add() {
-  let val = input.value.trim();
+  let val = normalizeDomain(input.value);
   if (!val) return;
 
   let { domains = [] } = await browser.storage.local.get("domains");
+  if (domains.includes(val)) {
+    input.value = "";
+    return;
+  }
+
   domains.push(val);
 
   await browser.storage.local.set({ domains });
