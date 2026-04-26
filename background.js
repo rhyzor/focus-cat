@@ -9,6 +9,19 @@ async function getEnabledState() {
   return enabled;
 }
 
+function normalizeDomain(input) {
+  if (!input) return "";
+
+  const trimmed = String(input).trim().toLowerCase();
+  if (!trimmed) return "";
+
+  const withoutScheme = trimmed.replace(/^[a-z]+:\/\//i, "");
+  const withoutPath = withoutScheme.split("/")[0];
+  const withoutPort = withoutPath.split(":")[0];
+
+  return withoutPort.replace(/^\*\./, "").replace(/^\./, "");
+}
+
 // загрузка данных
 async function load() {
   const data = await browser.storage.local.get([
@@ -18,7 +31,7 @@ async function load() {
     "enabled"
   ]);
 
-  allowedDomains = data.domains || [];
+  allowedDomains = (data.domains || []).map(normalizeDomain).filter(Boolean);
   lastAllowedTime = data.lastAllowedTime || Date.now();
   distractedTime = data.distractedTime || 0;
 
@@ -31,7 +44,14 @@ async function load() {
 function isAllowed(url) {
   try {
     const host = new URL(url).hostname;
-    return allowedDomains.some((d) => host.includes(d));
+    const normalizedHost = normalizeDomain(host);
+
+    return allowedDomains.some((rawDomain) => {
+      const domain = normalizeDomain(rawDomain);
+      if (!domain) return false;
+
+      return normalizedHost === domain || normalizedHost.endsWith(`.${domain}`);
+    });
   } catch {
     return false;
   }
@@ -101,7 +121,12 @@ async function check() {
 // обновление доменов и состояния при изменении
 browser.storage.onChanged.addListener((changes) => {
   if (changes.domains) {
-    allowedDomains = changes.domains.newValue || [];
+    allowedDomains = (changes.domains.newValue || []).map(normalizeDomain).filter(Boolean);
+  }
+
+  if (changes.enabled) {
+    // мгновенно применяем состояние без перезапуска
+    check();
   }
 
   if (changes.enabled) {
