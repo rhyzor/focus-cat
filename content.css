@@ -1,0 +1,34 @@
+#focus-cat {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background:black;
+  color:white;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  z-index:999999;
+}
+
+.cat-box {
+  text-align:center;
+  animation: fadeIn 0.5s;
+}
+
+.cat-img {
+  width:150px;
+  animation: bounce 1s infinite;
+}
+
+@keyframes bounce {
+  0%{transform:translateY(0)}
+  50%{transform:translateY(-20px)}
+  100%{transform:translateY(0)}
+}
+
+@keyframes fadeIn {
+  from{opacity:0}
+  to{opacity:1}
+}
