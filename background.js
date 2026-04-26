@@ -21,6 +21,24 @@ function normalizeDomain(input) {
   return withoutPort.replace(/^\*\./, "").replace(/^\./, "");
 }
 
+async function getEnabledState() {
+  const { enabled = true } = await browser.storage.local.get("enabled");
+  return enabled;
+}
+
+function normalizeDomain(input) {
+  if (!input) return "";
+
+  const trimmed = String(input).trim().toLowerCase();
+  if (!trimmed) return "";
+
+  const withoutScheme = trimmed.replace(/^[a-z]+:\/\//i, "");
+  const withoutPath = withoutScheme.split("/")[0];
+  const withoutPort = withoutPath.split(":")[0];
+
+  return withoutPort.replace(/^\*\./, "").replace(/^\./, "");
+}
+
 // загрузка данных
 async function load() {
   const data = await browser.storage.local.get([

@@ -17,6 +17,19 @@ function normalizeDomain(inputValue) {
   return withoutPort.replace(/^\*\./, "").replace(/^\./, "");
 }
 
+function normalizeDomain(inputValue) {
+  if (!inputValue) return "";
+
+  const trimmed = String(inputValue).trim().toLowerCase();
+  if (!trimmed) return "";
+
+  const withoutScheme = trimmed.replace(/^[a-z]+:\/\//i, "");
+  const withoutPath = withoutScheme.split("/")[0];
+  const withoutPort = withoutPath.split(":")[0];
+
+  return withoutPort.replace(/^\*\./, "").replace(/^\./, "");
+}
+
 async function load() {
   let { domains = [], limitMinutes = 10 } = await browser.storage.local.get([
     "domains",
