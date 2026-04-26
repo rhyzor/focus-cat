@@ -1,8 +1,25 @@
 let allowedDomains = [];
 let lastAllowedTime = Date.now();
 let distractedTime = 0;
+let limitMs = 10 * 60 * 1000; // 10 минут по умолчанию
 
-const LIMIT = 10 * 60 * 1000; // 10 минут
+async function getEnabledState() {
+  const { enabled = true } = await browser.storage.local.get("enabled");
+  return enabled;
+}
+
+function normalizeDomain(input) {
+  if (!input) return "";
+
+  const trimmed = String(input).trim().toLowerCase();
+  if (!trimmed) return "";
+
+  const withoutScheme = trimmed.replace(/^[a-z]+:\/\//i, "");
+  const withoutPath = withoutScheme.split("/")[0];
+  const withoutPort = withoutPath.split(":")[0];
+
+  return withoutPort.replace(/^\*\./, "").replace(/^\./, "");
+}
 
 async function getEnabledState() {
   const { enabled = true } = await browser.storage.local.get("enabled");
@@ -28,15 +45,21 @@ async function load() {
     "domains",
     "lastAllowedTime",
     "distractedTime",
-    "enabled"
+    "enabled",
+    "limitMinutes"
   ]);
 
   allowedDomains = (data.domains || []).map(normalizeDomain).filter(Boolean);
   lastAllowedTime = data.lastAllowedTime || Date.now();
   distractedTime = data.distractedTime || 0;
+  limitMs = Math.max(1, Number(data.limitMinutes) || 10) * 60 * 1000;
 
   if (typeof data.enabled === "undefined") {
     await browser.storage.local.set({ enabled: true });
+  }
+
+  if (typeof data.limitMinutes === "undefined") {
+    await browser.storage.local.set({ limitMinutes: 10 });
   }
 }
 
@@ -64,6 +87,16 @@ async function safeSend(tabId, msg) {
   } catch (e) {
     // игнорируем (нет content script)
   }
+}
+
+async function stopTimerOnAllTabs() {
+  const tabs = await browser.tabs.query({});
+
+  await Promise.all(
+    tabs
+      .filter((tab) => tab.id)
+      .map((tab) => safeSend(tab.id, { action: "stopTimer" }))
+  );
 }
 
 // блокировка вкладки
@@ -102,8 +135,6 @@ async function check() {
 
     await safeSend(tab.id, { action: "stopTimer" });
   } else {
-    await safeSend(tab.id, { action: "startTimer" });
-
     const now = Date.now();
     distractedTime += 5000;
 
@@ -111,7 +142,12 @@ async function check() {
       distractedTime
     });
 
-    if (now - lastAllowedTime > LIMIT) {
+    await safeSend(tab.id, {
+      action: "startTimer",
+      distractedTime
+    });
+
+    if (now - lastAllowedTime > limitMs) {
       await safeSend(tab.id, { action: "cat" });
       await blockTab(tab.id);
     }
@@ -124,8 +160,17 @@ browser.storage.onChanged.addListener((changes) => {
     allowedDomains = (changes.domains.newValue || []).map(normalizeDomain).filter(Boolean);
   }
 
+  if (changes.limitMinutes) {
+    limitMs = Math.max(1, Number(changes.limitMinutes.newValue) || 10) * 60 * 1000;
+  }
+
   if (changes.enabled) {
     // мгновенно применяем состояние без перезапуска
+    if (changes.enabled.newValue === false) {
+      stopTimerOnAllTabs();
+      return;
+    }
+
     check();
   }
 });
