@@ -128,6 +128,11 @@ browser.storage.onChanged.addListener((changes) => {
     // мгновенно применяем состояние без перезапуска
     check();
   }
+
+  if (changes.enabled) {
+    // мгновенно применяем состояние без перезапуска
+    check();
+  }
 });
 
 // события вкладок
