@@ -1,3 +1,16 @@
+#focus-timer {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 999998;
+  background: rgba(0, 0, 0, 0.85);
+  color: #fff;
+  font-family: sans-serif;
+  font-size: 14px;
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+
 #focus-cat {
   position: fixed;
   top: 0;
