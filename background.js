@@ -4,24 +4,34 @@ let distractedTime = 0;
 
 const LIMIT = 10 * 60 * 1000; // 10 минут
 
+async function getEnabledState() {
+  const { enabled = true } = await browser.storage.local.get("enabled");
+  return enabled;
+}
+
 // загрузка данных
 async function load() {
-  let data = await browser.storage.local.get([
+  const data = await browser.storage.local.get([
     "domains",
     "lastAllowedTime",
-    "distractedTime"
+    "distractedTime",
+    "enabled"
   ]);
 
   allowedDomains = data.domains || [];
   lastAllowedTime = data.lastAllowedTime || Date.now();
   distractedTime = data.distractedTime || 0;
+
+  if (typeof data.enabled === "undefined") {
+    await browser.storage.local.set({ enabled: true });
+  }
 }
 
 // проверка домена
 function isAllowed(url) {
   try {
-    let host = new URL(url).hostname;
-    return allowedDomains.some(d => host.includes(d));
+    const host = new URL(url).hostname;
+    return allowedDomains.some((d) => host.includes(d));
   } catch {
     return false;
   }
@@ -45,7 +55,10 @@ async function blockTab(tabId) {
 
 // основная проверка
 async function check() {
-  let [tab] = await browser.tabs.query({
+  const enabled = await getEnabledState();
+  if (!enabled) return;
+
+  const [tab] = await browser.tabs.query({
     active: true,
     currentWindow: true
   });
@@ -68,11 +81,10 @@ async function check() {
     });
 
     await safeSend(tab.id, { action: "stopTimer" });
-
   } else {
     await safeSend(tab.id, { action: "startTimer" });
 
-    let now = Date.now();
+    const now = Date.now();
     distractedTime += 5000;
 
     await browser.storage.local.set({
@@ -86,10 +98,15 @@ async function check() {
   }
 }
 
-// обновление доменов при изменении
+// обновление доменов и состояния при изменении
 browser.storage.onChanged.addListener((changes) => {
   if (changes.domains) {
     allowedDomains = changes.domains.newValue || [];
+  }
+
+  if (changes.enabled) {
+    // мгновенно применяем состояние без перезапуска
+    check();
   }
 });
 
