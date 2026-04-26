@@ -2,24 +2,7 @@ let allowedDomains = [];
 let lastAllowedTime = Date.now();
 let distractedTime = 0;
 let limitMs = 10 * 60 * 1000; // 10 минут по умолчанию
-
-async function getEnabledState() {
-  const { enabled = true } = await browser.storage.local.get("enabled");
-  return enabled;
-}
-
-function normalizeDomain(input) {
-  if (!input) return "";
-
-  const trimmed = String(input).trim().toLowerCase();
-  if (!trimmed) return "";
-
-  const withoutScheme = trimmed.replace(/^[a-z]+:\/\//i, "");
-  const withoutPath = withoutScheme.split("/")[0];
-  const withoutPort = withoutPath.split(":")[0];
-
-  return withoutPort.replace(/^\*\./, "").replace(/^\./, "");
-}
+let lastCheckAt = Date.now();
 
 async function getEnabledState() {
   const { enabled = true } = await browser.storage.local.get("enabled");
@@ -108,6 +91,10 @@ async function blockTab(tabId) {
 
 // основная проверка
 async function check() {
+  const now = Date.now();
+  const deltaMs = Math.max(0, now - lastCheckAt);
+  lastCheckAt = now;
+
   const enabled = await getEnabledState();
   if (!enabled) return;
 
@@ -135,8 +122,7 @@ async function check() {
 
     await safeSend(tab.id, { action: "stopTimer" });
   } else {
-    const now = Date.now();
-    distractedTime += 5000;
+    distractedTime += deltaMs;
 
     await browser.storage.local.set({
       distractedTime
