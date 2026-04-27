@@ -1,27 +1,63 @@
 let allowedDomains = [];
 let lastAllowedTime = Date.now();
 let distractedTime = 0;
+let limitMs = 10 * 60 * 1000; // 10 минут по умолчанию
+let lastCheckAt = Date.now();
 
-const LIMIT = 10 * 60 * 1000; // 10 минут
+async function getEnabledState() {
+  const { enabled = true } = await browser.storage.local.get("enabled");
+  return enabled;
+}
+
+function normalizeDomain(input) {
+  if (!input) return "";
+
+  const trimmed = String(input).trim().toLowerCase();
+  if (!trimmed) return "";
+
+  const withoutScheme = trimmed.replace(/^[a-z]+:\/\//i, "");
+  const withoutPath = withoutScheme.split("/")[0];
+  const withoutPort = withoutPath.split(":")[0];
+
+  return withoutPort.replace(/^\*\./, "").replace(/^\./, "");
+}
 
 // загрузка данных
 async function load() {
-  let data = await browser.storage.local.get([
+  const data = await browser.storage.local.get([
     "domains",
     "lastAllowedTime",
-    "distractedTime"
+    "distractedTime",
+    "enabled",
+    "limitMinutes"
   ]);
 
-  allowedDomains = data.domains || [];
+  allowedDomains = (data.domains || []).map(normalizeDomain).filter(Boolean);
   lastAllowedTime = data.lastAllowedTime || Date.now();
   distractedTime = data.distractedTime || 0;
+  limitMs = Math.max(1, Number(data.limitMinutes) || 10) * 60 * 1000;
+
+  if (typeof data.enabled === "undefined") {
+    await browser.storage.local.set({ enabled: true });
+  }
+
+  if (typeof data.limitMinutes === "undefined") {
+    await browser.storage.local.set({ limitMinutes: 10 });
+  }
 }
 
 // проверка домена
 function isAllowed(url) {
   try {
-    let host = new URL(url).hostname;
-    return allowedDomains.some(d => host.includes(d));
+    const host = new URL(url).hostname;
+    const normalizedHost = normalizeDomain(host);
+
+    return allowedDomains.some((rawDomain) => {
+      const domain = normalizeDomain(rawDomain);
+      if (!domain) return false;
+
+      return normalizedHost === domain || normalizedHost.endsWith(`.${domain}`);
+    });
   } catch {
     return false;
   }
@@ -36,6 +72,16 @@ async function safeSend(tabId, msg) {
   }
 }
 
+async function stopTimerOnAllTabs() {
+  const tabs = await browser.tabs.query({});
+
+  await Promise.all(
+    tabs
+      .filter((tab) => tab.id)
+      .map((tab) => safeSend(tab.id, { action: "stopTimer" }))
+  );
+}
+
 // блокировка вкладки
 async function blockTab(tabId) {
   await browser.tabs.update(tabId, {
@@ -45,7 +91,14 @@ async function blockTab(tabId) {
 
 // основная проверка
 async function check() {
-  let [tab] = await browser.tabs.query({
+  const now = Date.now();
+  const deltaMs = Math.max(0, now - lastCheckAt);
+  lastCheckAt = now;
+
+  const enabled = await getEnabledState();
+  if (!enabled) return;
+
+  const [tab] = await browser.tabs.query({
     active: true,
     currentWindow: true
   });
@@ -68,28 +121,43 @@ async function check() {
     });
 
     await safeSend(tab.id, { action: "stopTimer" });
-
   } else {
-    await safeSend(tab.id, { action: "startTimer" });
-
-    let now = Date.now();
-    distractedTime += 5000;
+    distractedTime += deltaMs;
 
     await browser.storage.local.set({
       distractedTime
     });
 
-    if (now - lastAllowedTime > LIMIT) {
+    await safeSend(tab.id, {
+      action: "startTimer",
+      distractedTime
+    });
+
+    if (now - lastAllowedTime > limitMs) {
       await safeSend(tab.id, { action: "cat" });
       await blockTab(tab.id);
     }
   }
 }
 
-// обновление доменов при изменении
+// обновление доменов и состояния при изменении
 browser.storage.onChanged.addListener((changes) => {
   if (changes.domains) {
-    allowedDomains = changes.domains.newValue || [];
+    allowedDomains = (changes.domains.newValue || []).map(normalizeDomain).filter(Boolean);
+  }
+
+  if (changes.limitMinutes) {
+    limitMs = Math.max(1, Number(changes.limitMinutes.newValue) || 10) * 60 * 1000;
+  }
+
+  if (changes.enabled) {
+    // мгновенно применяем состояние без перезапуска
+    if (changes.enabled.newValue === false) {
+      stopTimerOnAllTabs();
+      return;
+    }
+
+    check();
   }
 });
 
