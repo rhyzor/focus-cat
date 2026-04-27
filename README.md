@@ -1,4 +1,3 @@
----
 
 # 🐱 Focus Cat
 <img width="1536" height="1024" alt="ChatGPT Image Apr 27, 2026, 05_04_00 AM" src="https://github.com/user-attachments/assets/9bee0a7a-a8bd-4f9e-ad3c-77519f5e4941" />
