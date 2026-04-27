@@ -4,6 +4,9 @@ let distractedTime = 0;
 let limitMs = 10 * 60 * 1000; // 10 минут по умолчанию
 let lastCheckAt = Date.now();
 
+let fullFocusEnabled = false;
+let fullFocusEndAt = 0;
+
 async function getEnabledState() {
   const { enabled = true } = await browser.storage.local.get("enabled");
   return enabled;
@@ -29,7 +32,10 @@ async function load() {
     "lastAllowedTime",
     "distractedTime",
     "enabled",
-    "limitMinutes"
+    "limitMinutes",
+    "fullFocusEnabled",
+    "fullFocusEndAt",
+    "fullFocusDurationMinutes"
   ]);
 
   allowedDomains = (data.domains || []).map(normalizeDomain).filter(Boolean);
@@ -37,12 +43,23 @@ async function load() {
   distractedTime = data.distractedTime || 0;
   limitMs = Math.max(1, Number(data.limitMinutes) || 10) * 60 * 1000;
 
+  fullFocusEnabled = Boolean(data.fullFocusEnabled);
+  fullFocusEndAt = Number(data.fullFocusEndAt) || 0;
+
   if (typeof data.enabled === "undefined") {
     await browser.storage.local.set({ enabled: true });
   }
 
   if (typeof data.limitMinutes === "undefined") {
     await browser.storage.local.set({ limitMinutes: 10 });
+  }
+
+  if (typeof data.fullFocusEnabled === "undefined") {
+    await browser.storage.local.set({ fullFocusEnabled: false });
+  }
+
+  if (typeof data.fullFocusDurationMinutes === "undefined") {
+    await browser.storage.local.set({ fullFocusDurationMinutes: 25 });
   }
 }
 
@@ -72,13 +89,16 @@ async function safeSend(tabId, msg) {
   }
 }
 
-async function stopTimerOnAllTabs() {
+async function stopIndicatorsOnAllTabs() {
   const tabs = await browser.tabs.query({});
 
   await Promise.all(
     tabs
       .filter((tab) => tab.id)
-      .map((tab) => safeSend(tab.id, { action: "stopTimer" }))
+      .map((tab) => Promise.all([
+        safeSend(tab.id, { action: "stopTimer" }),
+        safeSend(tab.id, { action: "stopFocusSessionTimer" })
+      ]))
   );
 }
 
@@ -89,6 +109,61 @@ async function blockTab(tabId) {
   });
 }
 
+async function getActiveTab() {
+  const [tab] = await browser.tabs.query({
+    active: true,
+    currentWindow: true
+  });
+
+  if (!tab || !tab.id) return null;
+  if (!tab.url || tab.url.startsWith("about:")) return null;
+  if (tab.url.startsWith(browser.runtime.getURL(""))) return null;
+  if (tab.url.includes("blocked.html")) return null;
+
+  return tab;
+}
+
+async function handleFullFocus(now, tab) {
+  const remainingMs = fullFocusEndAt - now;
+
+  if (remainingMs <= 0) {
+    fullFocusEnabled = false;
+    fullFocusEndAt = 0;
+
+    await browser.storage.local.set({
+      fullFocusEnabled: false,
+      fullFocusEndAt: 0
+    });
+
+    if (tab?.id) {
+      await safeSend(tab.id, { action: "stopFocusSessionTimer" });
+      await safeSend(tab.id, {
+        action: "catSessionDone",
+        text: "Сеанс фокуса окончен ✅",
+        subText: "Полный фокус выключен автоматически"
+      });
+    }
+
+    return true;
+  }
+
+  if (!tab) return true;
+
+  if (!isAllowed(tab.url)) {
+    await safeSend(tab.id, { action: "stopTimer" });
+    await safeSend(tab.id, { action: "stopFocusSessionTimer" });
+    await blockTab(tab.id);
+    return true;
+  }
+
+  await safeSend(tab.id, {
+    action: "startFocusSessionTimer",
+    remainingMs
+  });
+
+  return true;
+}
+
 // основная проверка
 async function check() {
   const now = Date.now();
@@ -96,20 +171,20 @@ async function check() {
   lastCheckAt = now;
 
   const enabled = await getEnabledState();
-  if (!enabled) return;
 
-  const [tab] = await browser.tabs.query({
-    active: true,
-    currentWindow: true
-  });
+  if (!enabled && !fullFocusEnabled) {
+    await stopIndicatorsOnAllTabs();
+    return;
+  }
 
-  if (!tab || !tab.id) return;
+  const tab = await getActiveTab();
 
-  // не трогаем служебные страницы
-  if (!tab.url || tab.url.startsWith("about:")) return;
+  if (fullFocusEnabled) {
+    const handled = await handleFullFocus(now, tab);
+    if (handled) return;
+  }
 
-  // не зацикливаемся на блокировке
-  if (tab.url.includes("blocked.html")) return;
+  if (!enabled || !tab) return;
 
   if (isAllowed(tab.url)) {
     lastAllowedTime = Date.now();
@@ -150,10 +225,22 @@ browser.storage.onChanged.addListener((changes) => {
     limitMs = Math.max(1, Number(changes.limitMinutes.newValue) || 10) * 60 * 1000;
   }
 
+  if (changes.fullFocusEnabled) {
+    fullFocusEnabled = Boolean(changes.fullFocusEnabled.newValue);
+
+    if (!fullFocusEnabled) {
+      stopIndicatorsOnAllTabs();
+    }
+  }
+
+  if (changes.fullFocusEndAt) {
+    fullFocusEndAt = Number(changes.fullFocusEndAt.newValue) || 0;
+  }
+
   if (changes.enabled) {
     // мгновенно применяем состояние без перезапуска
-    if (changes.enabled.newValue === false) {
-      stopTimerOnAllTabs();
+    if (changes.enabled.newValue === false && !fullFocusEnabled) {
+      stopIndicatorsOnAllTabs();
       return;
     }
 
@@ -167,4 +254,4 @@ browser.tabs.onUpdated.addListener(check);
 
 // запуск
 load();
-setInterval(check, 5000);
+setInterval(check, 1000);
