@@ -33,6 +33,13 @@
     }
   ],
 
+  "web_accessible_resources": [
+    {
+      "resources": ["quotes.txt", "icon.png"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+
   "options_ui": {
     "page": "options.html",
     "open_in_tab": true
