@@ -3,6 +3,12 @@
   "name": "Focus Cat",
   "version": "1.0",
   "description": "Кот следит за твоим фокусом 🐱",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "focus-cat@yourdomain.dev",
+      "data_collection_permissions": {}
+    }
+  },
 
   "permissions": ["tabs", "storage", "notifications"],
   "host_permissions": ["<all_urls>"],
@@ -12,7 +18,11 @@
   },
 
   "action": {
-    "default_popup": "popup.html"
+    "default_popup": "popup.html",
+    "default_icon": {
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
   },
 
   "content_scripts": [
@@ -29,6 +39,7 @@
   },
 
   "icons": {
-    "48": "icon.png"
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
   }
 }
