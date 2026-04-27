@@ -15,6 +15,18 @@ browser.runtime.onMessage.addListener((msg) => {
   if (msg.action === "cat") {
     showCat();
   }
+
+  if (msg.action === "startFocusSessionTimer") {
+    startFocusSessionTimer(msg.remainingMs || 0);
+  }
+
+  if (msg.action === "stopFocusSessionTimer") {
+    stopFocusSessionTimer();
+  }
+
+  if (msg.action === "catSessionDone") {
+    showCat(msg.text, msg.subText);
+  }
 });
 
 function startTimer(distractedTimeMs) {
@@ -71,7 +83,7 @@ function updateTimer() {
   el.textContent = `${m}:${s}`;
 }
 
-function showCat() {
+function showCat(titleText = "Ты отвлёкся 😼", subText = "Вернись на разрешённые сайты") {
   if (document.getElementById("focus-cat")) return;
 
   const div = document.createElement("div");
@@ -84,10 +96,10 @@ function showCat() {
   catImage.className = "cat-img";
 
   const catText = document.createElement("div");
-  catText.textContent = "Ты отвлёкся 😼";
+  catText.textContent = titleText;
 
   const catSubText = document.createElement("div");
-  catSubText.textContent = "Вернись на разрешённые сайты";
+  catSubText.textContent = subText;
   catSubText.className = "cat-subtext";
 
   const quoteText = document.createElement("div");
@@ -102,6 +114,37 @@ function showCat() {
 
   document.body.appendChild(div);
   fillRandomQuote(quoteText);
+}
+
+function startFocusSessionTimer(remainingMs) {
+  let bar = document.getElementById("focus-session-timer");
+
+  if (!bar) {
+    bar = document.createElement("div");
+    bar.id = "focus-session-timer";
+    bar.style.position = "fixed";
+    bar.style.top = "12px";
+    bar.style.left = "12px";
+    bar.style.zIndex = "2147483646";
+    bar.style.background = "rgba(21, 101, 192, 0.95)";
+    bar.style.color = "#fff";
+    bar.style.padding = "8px 10px";
+    bar.style.borderRadius = "8px";
+    bar.style.fontFamily = "sans-serif";
+    bar.style.fontSize = "13px";
+    bar.style.boxShadow = "0 4px 10px rgba(0,0,0,0.3)";
+    document.body.appendChild(bar);
+  }
+
+  const totalSeconds = Math.max(0, Math.ceil(Number(remainingMs || 0) / 1000));
+  const m = Math.floor(totalSeconds / 60).toString().padStart(2, "0");
+  const s = (totalSeconds % 60).toString().padStart(2, "0");
+  bar.textContent = `🐱 Полный фокус: ${m}:${s}`;
+}
+
+function stopFocusSessionTimer() {
+  const bar = document.getElementById("focus-session-timer");
+  if (bar) bar.remove();
 }
 
 async function loadQuotes() {
