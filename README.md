@@ -1,8 +1,7 @@
 ---
 
 # 🐱 Focus Cat
-
-![Focus Cat](https://github.com/user-attachments/assets/dfd205cc-ba46-4ac3-ba8a-bd7a50229fb9)
+<img width="1536" height="1024" alt="ChatGPT Image Apr 27, 2026, 05_04_00 AM" src="https://github.com/user-attachments/assets/9bee0a7a-a8bd-4f9e-ad3c-77519f5e4941" />
 
 > 🧠 Минималистичное расширение для Firefox (Manifest V3), которое помогает держать фокус, ограничивать отвлечения и мягко напоминать о времени через «кот-сигнал».
 
@@ -62,6 +61,8 @@
 * `limitMinutes: number` — лимит времени
 
 ---
+
+![Focus Cat](https://github.com/user-attachments/assets/dfd205cc-ba46-4ac3-ba8a-bd7a50229fb9)
 
 ## ⚙️ Логика работы
 
