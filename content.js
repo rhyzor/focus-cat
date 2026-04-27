@@ -1,6 +1,7 @@
 let timerInterval = null;
 let baseSeconds = 0;
 let startedAt = 0;
+let quotesCache = null;
 
 browser.runtime.onMessage.addListener((msg) => {
   if (msg.action === "startTimer") {
@@ -82,9 +83,52 @@ function showCat() {
   const catText = document.createElement("div");
   catText.textContent = "Ты отвлёкся 😼";
 
+  const catSubText = document.createElement("div");
+  catSubText.textContent = "Вернись на разрешённые сайты";
+  catSubText.className = "cat-subtext";
+
+  const quoteText = document.createElement("div");
+  quoteText.className = "cat-quote";
+  quoteText.textContent = "Загружаем мотивацию...";
+
   catBox.appendChild(catImage);
   catBox.appendChild(catText);
+  catBox.appendChild(catSubText);
+  catBox.appendChild(quoteText);
   div.appendChild(catBox);
 
   document.body.appendChild(div);
+  fillRandomQuote(quoteText);
+}
+
+async function loadQuotes() {
+  if (Array.isArray(quotesCache)) return quotesCache;
+
+  try {
+    const response = await fetch(browser.runtime.getURL("quotes.txt"));
+    if (!response.ok) throw new Error("Quotes file not found");
+
+    const text = await response.text();
+    quotesCache = text
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+  } catch (error) {
+    quotesCache = [];
+  }
+
+  return quotesCache;
+}
+
+async function fillRandomQuote(targetElement) {
+  const quotes = await loadQuotes();
+  const fallbackQuote = "Сделай маленький шаг к фокусу прямо сейчас.";
+
+  if (!quotes.length) {
+    targetElement.textContent = fallbackQuote;
+    return;
+  }
+
+  const randomIndex = Math.floor(Math.random() * quotes.length);
+  targetElement.textContent = quotes[randomIndex];
 }

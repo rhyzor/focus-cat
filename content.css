@@ -30,6 +30,19 @@
   animation: fadeIn 0.5s;
 }
 
+.cat-subtext {
+  margin-top: 10px;
+  font-size: 20px;
+}
+
+.cat-quote {
+  margin-top: 14px;
+  font-size: 18px;
+  font-style: italic;
+  opacity: 0.95;
+  max-width: 80vw;
+}
+
 .cat-img {
   width: min(80vw, 80vh);
   max-width: 900px;
