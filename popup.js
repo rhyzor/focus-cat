@@ -38,7 +38,10 @@ async function renderFullFocusState() {
   const minutesInput = document.getElementById("fullFocusMinutes");
   const status = document.getElementById("fullFocusStatus");
 
-  minutesInput.value = Math.max(1, Number(fullFocusDurationMinutes) || 25);
+  const normalizedDuration = Math.max(1, Number(fullFocusDurationMinutes) || 25);
+  if (document.activeElement !== minutesInput) {
+    minutesInput.value = normalizedDuration;
+  }
   renderFullFocusButton(fullFocusEnabled);
 
   if (fullFocusEnabled) {
@@ -98,6 +101,15 @@ async function toggleFullFocus() {
   await renderFullFocusState();
 }
 
+async function saveFullFocusDuration() {
+  const minutesInput = document.getElementById("fullFocusMinutes");
+  const raw = Number(minutesInput.value);
+  const fullFocusDurationMinutes = Math.max(1, Math.floor(raw || 25));
+
+  minutesInput.value = fullFocusDurationMinutes;
+  await browser.storage.local.set({ fullFocusDurationMinutes });
+}
+
 function startPopupTimer() {
   if (popupTimerInterval) return;
   popupTimerInterval = setInterval(() => {
@@ -107,5 +119,6 @@ function startPopupTimer() {
 
 document.getElementById("toggle").addEventListener("click", toggleEnabled);
 document.getElementById("fullFocusToggle").addEventListener("click", toggleFullFocus);
+document.getElementById("fullFocusMinutes").addEventListener("change", saveFullFocusDuration);
 load();
 startPopupTimer();
