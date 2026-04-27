@@ -6,7 +6,7 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "focus-cat@yourdomain.dev",
-      "data_collection_permissions": []
+      "data_collection_permissions": {}
     }
   },
 
