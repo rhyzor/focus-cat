@@ -39,17 +39,29 @@
 
 ```text
 focus-cat/
-├─ manifest.json        # Manifest V3
-├─ background.js        # Основная логика проверки/таймера/блокировки
-├─ content.js           # UI-реакции в странице (таймер/кот)
-├─ content.css          # Стили для content script
-├─ popup.html           # Popup интерфейс
-├─ popup.js             # Логика popup (время + ON/OFF)
-├─ options.html         # Экран настроек доменов
-├─ options.js           # Добавление/удаление whitelist-доменов
-├─ blocked.html         # Страница блокировки
-└─ icon.png             # Иконка расширения
+├─ manifest.json              # Манифест Firefox WebExtension (MV3)
+├─ background.js              # Фоновая логика: whitelist, таймер, блокировка, enabled
+├─ content.js                 # Встраиваемый UI на страницах: таймер и котик
+├─ content.css                # Стили таймера и оверлея кота
+├─ popup.html                 # Popup интерфейс расширения
+├─ popup.js                   # Логика popup: статус, ON/OFF переключатель
+├─ options.html               # Страница настроек (домены + лимит минут)
+├─ options.js                 # Логика настроек: normalize, add/remove, save limit
+├─ blocked.html               # Страница блокировки отвлекающего сайта
+├─ icon.png                   # Картинка котика для overlay (content UI)
+└─ icons/
+   ├─ icon-48.png             # Иконка расширения 48x48 (добавляется вручную)
+   └─ icon-128.png            # Иконка расширения 128x128 (добавляется вручную)
 ```
+
+### Что есть что (кратко)
+- **Иконка расширения**: `icons/icon-48.png`, `icons/icon-128.png`.
+- **Картинка котика в overlay**: `icon.png`.
+- **Бизнес-логика**: `background.js`.
+- **UI в страницах**: `content.js` + `content.css`.
+- **UI самого расширения**: `popup.*` и `options.*`.
+
+> Примечание: файлы `icons/icon-48.png` и `icons/icon-128.png` вы добавляете самостоятельно перед публикацией в AMO.
 
 ---
 

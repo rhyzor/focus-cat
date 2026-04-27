@@ -44,10 +44,12 @@ function createTimer() {
 
   const div = document.createElement("div");
   div.id = "focus-timer";
+  div.append("🐱 Вне фокуса: ");
 
-  div.innerHTML = `
-    🐱 Вне фокуса: <span id="time">00:00</span>
-  `;
+  const time = document.createElement("span");
+  time.id = "time";
+  time.textContent = "00:00";
+  div.appendChild(time);
 
   document.body.appendChild(div);
 }
@@ -70,13 +72,19 @@ function showCat() {
 
   const div = document.createElement("div");
   div.id = "focus-cat";
+  const catBox = document.createElement("div");
+  catBox.className = "cat-box";
 
-  div.innerHTML = `
-    <div class="cat-box">
-      <img src="${browser.runtime.getURL("icon.png")}" class="cat-img">
-      <div>Ты отвлёкся 😼</div>
-    </div>
-  `;
+  const catImage = document.createElement("img");
+  catImage.src = browser.runtime.getURL("icon.png");
+  catImage.className = "cat-img";
+
+  const catText = document.createElement("div");
+  catText.textContent = "Ты отвлёкся 😼";
+
+  catBox.appendChild(catImage);
+  catBox.appendChild(catText);
+  div.appendChild(catBox);
 
   document.body.appendChild(div);
 }
