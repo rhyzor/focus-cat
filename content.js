@@ -38,6 +38,9 @@ function stopTimer() {
 
   const el = document.getElementById("focus-timer");
   if (el) el.remove();
+
+  const catOverlay = document.getElementById("focus-cat");
+  if (catOverlay) catOverlay.remove();
 }
 
 function createTimer() {
@@ -89,7 +92,7 @@ function showCat() {
 
   const quoteText = document.createElement("div");
   quoteText.className = "cat-quote";
-  quoteText.textContent = "Загружаем мотивацию...";
+  quoteText.textContent = "Сделай маленький шаг к фокусу прямо сейчас.";
 
   catBox.appendChild(catImage);
   catBox.appendChild(catText);

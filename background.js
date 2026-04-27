@@ -135,7 +135,7 @@ async function check() {
 
     if (now - lastAllowedTime > limitMs) {
       await safeSend(tab.id, { action: "cat" });
-      await blockTab(tab.id);
+      return;
     }
   }
 }
