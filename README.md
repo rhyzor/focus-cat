@@ -1,5 +1,6 @@
 # 🐱 Focus Cat
-<img width="1536" height="1024" alt="icon" src="https://github.com/user-attachments/assets/93bcfd7f-57ab-4994-a52a-50092c07e8d2" />
+<img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/dfd205cc-ba46-4ac3-ba8a-bd7a50229fb9" />
+
 
 Минималистичное расширение (WebExtension Manifest V3) для Firefox, которое помогает возвращаться в фокус: отслеживает активную вкладку, считает время на сайтах вне разрешённого списка и показывает «сигнал кота» с мотивационной цитатой.
 
