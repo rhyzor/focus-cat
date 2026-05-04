@@ -163,3 +163,8 @@ focus-cat/
 
 ---
 
+## ⭐ Поддержка / Связь
+
+GitHub: [@rhyzor](https://github.com/rhyzor)
+
+Telegram: [@rhyzor1](https://t.me/rhyzor1)
